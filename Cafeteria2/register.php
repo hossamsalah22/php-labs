@@ -1,83 +1,94 @@
 <?php
 $title = "Add User";
 include_once("layouts/header.php");
+require 'connection/db_connect.php';
 
-session_start();
 
-if (isset($_SESSION['email'])) {
-    header("Location: welcome.php");
-    exit;
-}
+$db = db_connection();
+if ($db) {
+    if (isset($_POST['add-user'])) {
+        $errors = [];
 
-if (isset($_POST['add-user'])) {
-    $errors = [];
+        $allowed_extensions = array("jpg", "jpeg", "png", "gif");
+        $max_file_size = 2000000; // 2 MB
 
-    $allowed_extensions = array("jpg", "jpeg", "png", "gif");
-    $max_file_size = 2000000; // 2 MB
+        $file_name = $_FILES["profile-pic"]["name"];
+        $file_size = $_FILES["profile-pic"]["size"];
+        $file_temp = $_FILES["profile-pic"]["tmp_name"];
+        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
-    $file_name = $_FILES["profile-pic"]["name"];
-    $file_size = $_FILES["profile-pic"]["size"];
-    $file_temp = $_FILES["profile-pic"]["tmp_name"];
-    $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+        // Check Errors Of User Data Entry 
+        if (empty($_POST["user-name"])) {
+            $errors['user-name'] = "<div class='alert alert-danger'> Please enter your name </div>";
+        }
+        if (empty($_POST["email"])) {
+            $errors['email']['empty'] = "<div class='alert alert-danger'> Please enter your Email </div>";
+        } elseif (!filter_var($_POST["email"], FILTER_VALIDATE_EMAIL) || !preg_match("/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/", $_POST['email'])) {
+            $errors['email']['validation'] = "<div class='alert alert-danger'> Please enter Valid Email </div>";
+        }
+        if (empty($_POST["password"])) {
+            $errors['password']['empty'] = "<div class='alert alert-danger'> Please enter your password </div>";
+        } elseif (!preg_match("/^[a-z0-9_]{8}$/", $_POST["password"])) {
+            $errors['password']['validation'] = "<div class='alert alert-danger'> Password must be 8 small characters and only underscore allowed </div>";
+        }
+        if (empty($_POST["confirm-password"])) {
+            $errors['confirm-password'] = "<div class='alert alert-danger'> Please Confirm Your Password </div>";
+        }
+        if ($_POST['password'] != $_POST["confirm-password"]) {
+            $errors['match-password'] = "<div class='alert alert-danger'> Passwords Doesn't Match </div>";
+        }
+        if (empty($_POST["room"])) {
+            $errors['room'] = "<div class='alert alert-danger'> Please Select Your Room </div>";
+        }
+        if (!in_array($file_ext, $allowed_extensions) || $file_size >= $max_file_size) {
+            $errors['profile-pic'] = "<div class='alert alert-danger'> Invalid Image </div>";
+        }
+        if (empty($errors)) {
+            $upload_dir = "assets/img/";
+            $upload_file = $upload_dir . basename($file_name);
+            session_start();
+            if (move_uploaded_file($file_temp, $upload_file)) {
+                // File uploaded successfully
+                $_SESSION["success_message"] = "Image uploaded successfully!";
+            } else {
+                // Error moving the file
+                $_SESSION["error_message"] = "Error uploading the file!";
+            }
+        }
 
-    // Check Errors Of User Data Entry 
-    if (empty($_POST["user-name"])) {
-        $errors['user-name'] = "<div class='alert alert-danger'> Please enter your name </div>";
-    }
-    if (empty($_POST["email"])) {
-        $errors['email']['empty'] = "<div class='alert alert-danger'> Please enter your Email </div>";
-    } elseif (!filter_var($_POST["email"], FILTER_VALIDATE_EMAIL) || !preg_match("/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/", $_POST['email'])) {
-        $errors['email']['validation'] = "<div class='alert alert-danger'> Please enter Valid Email </div>";
-    }
-    if (empty($_POST["password"])) {
-        $errors['password']['empty'] = "<div class='alert alert-danger'> Please enter your password </div>";
-    } elseif (!preg_match("/^[a-z0-9_]{8}$/", $_POST["password"])) {
-        $errors['password']['validation'] = "<div class='alert alert-danger'> Password must be 8 small characters and only underscore allowed </div>";
-    }
-    if (empty($_POST["confirm-password"])) {
-        $errors['confirm-password'] = "<div class='alert alert-danger'> Please Confirm Your Password </div>";
-    }
-    if ($_POST['password'] != $_POST["confirm-password"]) {
-        $errors['match-password'] = "<div class='alert alert-danger'> Passwords Doesn't Match </div>";
-    }
-    if (empty($_POST["room"])) {
-        $errors['room'] = "<div class='alert alert-danger'> Please Select Your Room </div>";
-    }
-    if (!in_array($file_ext, $allowed_extensions) || $file_size >= $max_file_size) {
-        $errors['profile-pic'] = "<div class='alert alert-danger'> Invalid Image </div>";
-    }
-    if (empty($errors)) {
-        $upload_dir = "assets/img/";
-        $upload_file = $upload_dir . basename($file_name);
-        if (move_uploaded_file($file_temp, $upload_file)) {
-            // File uploaded successfully
-            $_SESSION["success_message"] = "Image uploaded successfully!";
-        } else {
-            // Error moving the file
-            $_SESSION["error_message"] = "Error uploading the file!";
+        if (isset($_SESSION["success_message"])) {
+            $query = "Insert INTO `cafeteria`.`users` (`name`, `email`, `password`, `room_no`, `image`)
+                Values(:user_name,:user_email,:user_password,:user_room_no,:user_image)";
+
+            $name = $_POST['user-name'];
+            $email = $_POST['email'];
+            $password = $_POST['password'];
+            $room = $_POST['room'];
+            $profile = $file_name;
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(":user_name", $name, PDO::PARAM_STR);
+            $stmt->bindParam(":user_email", $email, PDO::PARAM_STR);
+            $stmt->bindParam(":user_password", $password, PDO::PARAM_STR);
+            $stmt->bindParam(":user_room_no", $room, PDO::PARAM_STR);
+            $stmt->bindParam(":user_image", $profile, PDO::PARAM_STR);
+
+            $res = $stmt->execute();
+            unset($_SESSION["success_message"]);
+            session_destroy();
+            header("Location:login.php");
+            exit;
+        }
+
+        if (isset($_SESSION["error_message"])) {
+            $img['error'] = "<div class='alert alert-danger'> Error Uploading Image </div>";
+            unset($_SESSION["error_message"]);
+            session_destroy();
+            header("Location:register.php");
+            exit;
         }
     }
-
-    if (isset($_SESSION["success_message"])) {
-        $file = fopen("users.txt", "a+");
-        $id = microtime(true) * 10000;
-        $data = "{$id}:{$_POST['user-name']}:{$_POST['email']}:{$_POST['password']}:{$_POST['room']}:{$file_name}\n";
-        fwrite($file, $data);
-        fclose($file);
-        unset($_SESSION["success_message"]);
-        session_destroy();
-        header("Location:login.php");
-        exit;
-    }
-
-    if (isset($_SESSION["error_message"])) {
-        $img['error'] = "<div class='alert alert-danger'> Error Uploading Image </div>";
-        unset($_SESSION["error_message"]);
-        session_destroy();
-        header("Location:register.php");
-        exit;
-    }
 }
+
 ?>
 
 
