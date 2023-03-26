@@ -67,13 +67,15 @@ if (isset($_POST['add-user'])) {
         unset($_SESSION["success_message"]);
         session_destroy();
         header("Location:register.php");
+        exit;
     }
 
     if (isset($_SESSION["error_message"])) {
-        unset($_SESSION["error_message"]);
         $img['error'] = "<div class='alert alert-danger'> Error Uploading Image </div>";
+        unset($_SESSION["error_message"]);
         session_destroy();
         header("Location:register.php");
+        exit;
     }
 }
 ?>
@@ -105,8 +107,8 @@ if (isset($_POST['add-user'])) {
                                                                                                 } ?>" placeholder="Please Enter Your Email">
                     </div>
                     <?php if (!empty($errors['email'])) {
-                        foreach ($errors['email'] as $er) {
-                            echo $er;
+                        foreach ($errors['email'] as $err) {
+                            echo $err;
                         }
                     } ?>
                     <div class="form-group">
@@ -123,7 +125,6 @@ if (isset($_POST['add-user'])) {
                     <div class="form-group">
                         <label for="confirm-password" class="text-left font-weight-bold">Confirm Password</label>
                         <input type="password" name="confirm-password" id="confirm-password" class="form-control" value="<?php if (!empty($_POST['confirm-password'])) {
-                                                                                                                                echo $_POST['confirm-password'];
                                                                                                                             } ?>" placeholder="Please Enter Your confirm-password">
                     </div>
                     <?php if (!empty($errors['confirm-password'])) {

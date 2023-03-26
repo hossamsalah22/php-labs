@@ -6,6 +6,7 @@ if (isset($_POST['logout'])) {
     unset($_SESSION['email']);
     session_destroy();
     header("Location: login.php");
+    exit;
 }
 ?>
 
@@ -15,7 +16,6 @@ if (isset($_POST['logout'])) {
         <div class="col-12">
             <div class="h1 text-center my-3">Cafeteria</div>
             <?php
-            session_start();
             if (isset($_SESSION['email'])) { ?>
                 <div class="alert alert-success text-center" role="alert">
                     <?= "Welcome, " . $_SESSION['email']; ?>
