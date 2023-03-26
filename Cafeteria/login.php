@@ -29,7 +29,7 @@ if (isset($_POST['login'])) {
             return ($user_data && $user_data[2] == $email && $user_data[3] == $password);
         });
         if ($user) {
-            $_SESSION['user-name'] = $_POST['email'];
+            $_SESSION['email'] = $_POST['email'];
             header("Location: welcome.php");
             exit;
         } else {

@@ -66,7 +66,7 @@ if (isset($_POST['add-user'])) {
         fclose($file);
         unset($_SESSION["success_message"]);
         session_destroy();
-        header("Location:register.php");
+        header("Location:login.php");
         exit;
     }
 
